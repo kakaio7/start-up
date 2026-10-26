@@ -256,6 +256,11 @@ function CreateStartup() {
             return
         }
 
+        if (typeof supabase.rpc !== "function") {
+            setError("Conecte o Supabase para cadastrar startups.")
+            return
+        }
+
         if (!user) {
 
             alert(
@@ -273,120 +278,41 @@ function CreateStartup() {
 
             setLoading(true)
 
-
-            console.log(
-                "Usuário autenticado:",
-                user
-            )
-
-            console.log(
-                "UUID do usuário:",
-                user.id
-            )
-
-
-            const {
-
-                data: newStartup,
-
-                error: startupError
-
-            } = await supabase
-
-                .from("startups")
-
-                .insert({
-
-                    user_id: user.id,
-
-                    name: startup.name,
-
-                    category: startup.category,
-
-                    problem: startup.problem,
-
-                    audience: startup.audience,
-
-                    solution: startup.solution,
-
-                    business_model:
-                        startup.businessModel,
-
-                    stage: startup.stage
-
-                })
-
-                .select()
-
-                .single()
-
-
-            if (startupError) {
-
-                console.error(
-                    "Erro ao inserir startup:",
-                    startupError
-                )
-
-                throw startupError
-
-            }
-
-
-
             const goals =
                 stageGoals[startup.stage] || []
 
+            const { data: startupId, error: startupError } = await supabase.rpc(
+                "create_startup_with_goals",
+                {
+                    startup_data: {
+                        name: startup.name,
+                        category: startup.category,
+                        problem: startup.problem,
+                        audience: startup.audience,
+                        solution: startup.solution,
+                        business_model: startup.businessModel,
+                        stage: startup.stage
+                    },
+                    goals_data: goals
+                }
+            )
 
-            if (goals.length > 0) {
-
-                const goalsToInsert =
-                    goals.map(goal => ({
-
-                        startup_id:
-                            newStartup.id,
-
-                        title:
-                            goal.title,
-
-                        description:
-                            goal.description,
-
-                        stage:
-                            startup.stage,
-
-                        completed:
-                            false
-
-                    }))
-
-
-                const {
-
-                    error: goalsError
-
-                } = await supabase
-
-                    .from("startup_goals")
-
-                    .insert(
-                        goalsToInsert
+            if (startupError) {
+                if (
+                    startupError.code === "PGRST202" ||
+                    startupError.message?.includes("create_startup_with_goals")
+                ) {
+                    throw new Error(
+                        "A função do banco ainda não existe. Execute a migration 20261026093000_startups_and_goals.sql no SQL Editor do Supabase."
                     )
-
-
-                if (goalsError) {
-
-                    console.error(
-                        "Erro ao criar metas:",
-                        goalsError
-                    )
-
-                    throw goalsError
-
                 }
 
+                throw startupError
             }
 
+            if (!startupId) {
+                throw new Error("O banco não retornou o ID da startup criada.")
+            }
 
             // =========================
             // SUCESSO
@@ -397,7 +323,7 @@ function CreateStartup() {
             )
 
 
-            navigate(`/startup/${newStartup.id}`)
+            navigate(`/startup/${startupId}`)
 
 
         } catch (error) {
@@ -408,13 +334,9 @@ function CreateStartup() {
             )
 
 
-            alert(
-
-                `❌ Erro ao criar startup:\n${
-                    error.message ||
-                    "Tente novamente."
-                }`
-
+            setError(
+                error.message ||
+                "Não foi possível criar a startup. Tente novamente."
             )
 
         } finally {

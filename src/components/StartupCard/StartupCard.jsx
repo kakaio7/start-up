@@ -10,6 +10,7 @@ function StartupCard({
     stage = "Ideia",
     members = 1,
     likes = 0,
+    showStats = true,
     onClick
 }) {
     const navigate = useNavigate()
@@ -61,17 +62,12 @@ function StartupCard({
                 </strong>
             </div>
 
-            <div className="startup-stats">
-
-                <span>
-                    👥 {members} membros
-                </span>
-
-                <span>
-                    ❤️ {likes}
-                </span>
-
-            </div>
+            {showStats && (
+                <div className="startup-stats">
+                    <span>👥 {members} membros</span>
+                    <span>❤️ {likes}</span>
+                </div>
+            )}
 
             <button
                 className="startup-card-button"

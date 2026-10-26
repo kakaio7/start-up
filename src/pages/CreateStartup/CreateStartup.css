@@ -1,6 +1,7 @@
 .create-startup {
     min-height: 100%;
     background: var(--bg, #f8fafc);
+    color: var(--text, #171923);
 }
 
 .create-layout {
@@ -64,9 +65,9 @@
 }
 
 .startup-form {
-    background: white;
+    background: var(--surface, white);
 
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--border, #e5e7eb);
     border-radius: 15px;
 
     padding: 30px;
@@ -86,7 +87,7 @@
 
     margin-top: 18px;
 
-    color: #374151;
+    color: var(--text-secondary, #374151);
 
     font-size: 13px;
     font-weight: 600;
@@ -97,10 +98,12 @@
 .startup-form textarea {
     padding: 12px;
 
-    border: 1px solid #d1d5db;
+    border: 1px solid var(--border, #d1d5db);
     border-radius: 9px;
 
     outline: none;
+    background: var(--surface, white);
+    color: var(--text, #171923);
 
     font-family: inherit;
     font-size: 14px;
@@ -123,7 +126,7 @@
 
     padding: 15px;
 
-    background: #f8fafc;
+    background: var(--surface-secondary, #f8fafc);
 
     border-radius: 10px;
 }
@@ -133,7 +136,7 @@
 }
 
 .startup-summary p {
-    color: #6b7280;
+    color: var(--text-secondary, #6b7280);
 
     font-size: 13px;
 }

@@ -6,7 +6,7 @@ function UserCard({
     username = "@usuario",
     role = "Desenvolvedor",
     skills = [],
-    followers = 0
+    followers
 }) {
 
     const [following, setFollowing] = useState(false)
@@ -47,10 +47,9 @@ function UserCard({
             )}
 
             <div className="user-card-footer">
-
-                <span>
-                    👥 {followers} seguidores
-                </span>
+                {typeof followers === "number" && (
+                    <span>👥 {followers} seguidores</span>
+                )}
 
                 <button
                     className={following ? "following" : ""}

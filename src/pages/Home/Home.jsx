@@ -3,6 +3,7 @@ import StartupCard from "../../components/StartupCard/StartupCard"
 import UserCard from "../../components/UserCard/UserCard"
 
 import useAuth from "../../hooks/useAuth"
+import getUserDisplayName from "../../utils/getUserDisplayName"
 import { currentUser, posts as mockPosts, startups as mockStartups, users as mockUsers } from "../../data/mockData"
 
 import "./Home.css"
@@ -11,10 +12,9 @@ function Home() {
 
     const { user } = useAuth()
 
-    const displayName =
-        user?.user_metadata?.name ||
-        user?.name ||
-        currentUser.name
+    const displayName = user
+        ? getUserDisplayName(user)
+        : currentUser.name
 
     const firstName = displayName.split(" ")[0]
 

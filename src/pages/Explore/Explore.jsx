@@ -3,27 +3,38 @@ import { useSearchParams } from "react-router-dom"
 
 import StartupCard from "../../components/StartupCard/StartupCard"
 import UserCard from "../../components/UserCard/UserCard"
-import { startups as sampleStartups } from "../../data/mockData"
+import { startups as sampleStartups, users as sampleUsers } from "../../data/mockData"
 import { supabase } from "../../services/supabase"
+import useAuth from "../../hooks/useAuth"
 
 import "./Explore.css"
 
 function Explore() {
 
+    const { user: currentUser } = useAuth()
     const [filter, setFilter] = useState("startups")
     const [searchParams] = useSearchParams()
     const search = searchParams.get("search")?.trim() || ""
-    const [startups, setStartups] = useState(sampleStartups)
-    const [loadingStartups, setLoadingStartups] = useState(
-        typeof supabase.from === "function"
+    const isSupabaseConfigured = typeof supabase.from === "function"
+    const [startups, setStartups] = useState(
+        isSupabaseConfigured ? [] : sampleStartups
     )
+    const [users, setUsers] = useState(
+        isSupabaseConfigured ? [] : sampleUsers
+    )
+    const [loadingStartups, setLoadingStartups] = useState(
+        isSupabaseConfigured
+    )
+    const [loadingUsers, setLoadingUsers] = useState(isSupabaseConfigured)
     const [startupLoadError, setStartupLoadError] = useState("")
+    const [peopleLoadError, setPeopleLoadError] = useState("")
 
     useEffect(() => {
         let isActive = true
 
         async function loadStartups() {
-            if (typeof supabase.from !== "function") {
+            if (!isSupabaseConfigured) {
+                setStartups(sampleStartups)
                 setLoadingStartups(false)
                 return
             }
@@ -31,7 +42,7 @@ function Explore() {
             try {
                 const { data, error } = await supabase
                     .from("startups")
-                    .select("id,name,category,solution,stage,created_at")
+                    .select("id,name,category,problem,audience,solution,business_model,stage,created_at")
                     .order("created_at", { ascending: false })
 
                 if (error) {
@@ -42,33 +53,13 @@ function Explore() {
                     return
                 }
 
-                const startupsByName = new Map(
-                    sampleStartups.map((startup) => [
-                        startup.name.trim().toLocaleLowerCase(),
-                        startup
-                    ])
-                )
-
-                for (const startup of data || []) {
-                    if (!startup.name?.trim()) {
-                        continue
-                    }
-
-                    startupsByName.set(
-                        startup.name.trim().toLocaleLowerCase(),
-                        {
-                            ...startup,
-                            description:
-                                startup.description ||
-                                startup.solution ||
-                                "Conheça esta startup.",
-                            members: startup.members ?? 1,
-                            likes: startup.likes ?? 0
-                        }
-                    )
-                }
-
-                setStartups(Array.from(startupsByName.values()))
+                setStartups((data || []).map((startup) => ({
+                    ...startup,
+                    description: startup.solution || startup.problem,
+                    members: 1,
+                    likes: 0,
+                    showStats: false
+                })))
                 setStartupLoadError("")
             } catch (error) {
                 console.error("Erro ao buscar startups para explorar:", error)
@@ -89,24 +80,66 @@ function Explore() {
         return () => {
             isActive = false
         }
-    }, [])
+    }, [isSupabaseConfigured])
 
-    const users = [
-        {
-            name: "Marina Costa",
-            username: "@marina",
-            role: "Product Designer",
-            skills: ["Figma", "UX", "UI"],
-            followers: 420
-        },
-        {
-            name: "Pedro Lima",
-            username: "@pedrolima",
-            role: "Desenvolvedor Backend",
-            skills: ["Java", "Node.js", "SQL"],
-            followers: 280
+    useEffect(() => {
+        let isActive = true
+
+        async function loadPeople() {
+            if (!isSupabaseConfigured) {
+                setUsers(sampleUsers)
+                setLoadingUsers(false)
+                return
+            }
+
+            try {
+                const { data, error } = await supabase
+                    .from("profiles")
+                    .select("id,display_name,username")
+                    .order("display_name")
+
+                if (error) {
+                    throw error
+                }
+
+                if (!isActive) {
+                    return
+                }
+
+                setUsers((data || [])
+                    .filter((person) => person.id !== currentUser?.id)
+                    .map((person) => ({
+                        id: person.id,
+                        name: person.display_name,
+                        username: person.username
+                            ? `@${person.username.replace(/^@/, "")}`
+                            : "",
+                        role: "Membro da comunidade",
+                        skills: [],
+                        followers: undefined
+                    })))
+                setPeopleLoadError("")
+            } catch (error) {
+                console.error("Erro ao buscar pessoas para explorar:", error)
+                if (isActive) {
+                    setUsers([])
+                    setPeopleLoadError(
+                        "Não foi possível carregar os perfis da comunidade."
+                    )
+                }
+            } finally {
+                if (isActive) {
+                    setLoadingUsers(false)
+                }
+            }
         }
-    ]
+
+        loadPeople()
+
+        return () => {
+            isActive = false
+        }
+    }, [currentUser?.id, isSupabaseConfigured])
 
     const normalizeText = (value) =>
         String(value || "")
@@ -147,7 +180,7 @@ function Explore() {
                     .toLocaleLowerCase("pt-BR")
                     .includes(normalizedSearch)
             ),
-        [normalizedSearch]
+        [normalizedSearch, users]
     )
 
     return (
@@ -196,7 +229,7 @@ function Explore() {
                 <>
                     {startupLoadError && (
                         <p className="explore-error" role="status">
-                            {startupLoadError} Exibindo os resultados disponíveis.
+                            {startupLoadError}
                         </p>
                     )}
                     {loadingStartups ? (
@@ -223,13 +256,22 @@ function Explore() {
 
             {filter === "people" && (
                 <div className="explore-users">
-                    {filteredUsers.map((user) => (
+                    {peopleLoadError && (
+                        <p className="explore-error" role="status">
+                            {peopleLoadError}
+                        </p>
+                    )}
+                    {loadingUsers ? (
+                        <p className="explore-empty" role="status">
+                            Buscando pessoas...
+                        </p>
+                    ) : filteredUsers.map((person) => (
                         <UserCard
-                            key={user.username}
-                            {...user}
+                            key={person.id || person.username}
+                            {...person}
                         />
                     ))}
-                    {filteredUsers.length === 0 && (
+                    {!loadingUsers && filteredUsers.length === 0 && (
                         <p>Nenhuma pessoa encontrada.</p>
                     )}
                 </div>

@@ -157,6 +157,7 @@ function StartupDetails() {
                 .from("startup_goals")
                 .select("*")
                 .eq("startup_id", id)
+                .eq("stage", startupData.stage)
                 .order("created_at", {
                     ascending: true
                 })
@@ -225,6 +226,8 @@ function StartupDetails() {
                     stage: startup.stage
                 })
                 .eq("id", startup.id)
+                .select("id")
+                .single()
 
             if (updateError) {
                 throw updateError
@@ -304,40 +307,6 @@ function StartupDetails() {
         }
     }
 
-    async function createGoalsForStage(
-        startupId,
-        stage
-    ) {
-
-        const newGoals = stageGoals[stage] || []
-
-        if (newGoals.length === 0) {
-            return
-        }
-
-        const goalsToInsert = newGoals.map((goal) => ({
-            startup_id: startupId,
-
-            title: goal.title,
-
-            description: goal.description,
-
-            stage,
-
-            completed: false
-        }))
-
-        const {
-            error: goalsError
-        } = await supabase
-            .from("startup_goals")
-            .insert(goalsToInsert)
-
-        if (goalsError) {
-            throw goalsError
-        }
-    }
-
     async function advanceStage() {
 
         const currentStageIndex =
@@ -375,23 +344,18 @@ function StartupDetails() {
 
             setAdvancing(true)
 
-            const {
-                error: updateError
-            } = await supabase
-                .from("startups")
-                .update({
-                    stage: nextStage
-                })
-                .eq("id", startup.id)
-
-            if (updateError) {
-                throw updateError
-            }
-
-            await createGoalsForStage(
-                startup.id,
-                nextStage
+            const { error: advanceError } = await supabase.rpc(
+                "advance_startup_stage",
+                {
+                    target_startup_id: startup.id,
+                    target_stage: nextStage,
+                    goals_data: stageGoals[nextStage] || []
+                }
             )
+
+            if (advanceError) {
+                throw advanceError
+            }
 
             alert(
                 `🚀 Startup avançou para ${nextStage}!`
@@ -436,6 +400,8 @@ function StartupDetails() {
                 .from("startups")
                 .delete()
                 .eq("id", startup.id)
+                .select("id")
+                .single()
 
             if (deleteError) {
                 throw deleteError
