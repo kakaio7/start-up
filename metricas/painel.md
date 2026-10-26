@@ -17,7 +17,7 @@ A equipe selecionou cinco métricas: três de produto e duas de código.
 | Taxa de ativação | Produto | 30% | 21–22/10/2026 — estimativa | Revisar o cadastro e as orientações do primeiro acesso |
 | Retenção | Produto | 66,7% | Coorte ilustrativa de acompanhamento | Investigar por que os usuários não voltam |
 | NPS | Produto | +40 | Pesquisa com 10 respostas | Coletar opiniões e investigar a experiência dos usuários |
-| Commits | Código | 26 | 21–22/10/2026 | Verificar se alguém está bloqueado e revisar as tarefas |
+| Commits | Código | 41 | 21–22/10/2026 | Verificar se alguém está bloqueado e revisar as tarefas |
 | Bugs em aberto | Código | 5 | Situação atual a conferir | Priorizar correções dos erros mais importantes |
 
 ## 3. Cálculos obrigatórios
